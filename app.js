@@ -444,6 +444,23 @@ app.post("/login",
   })
 );
 
+
+app.get('/privacy-policy', (req, res) => {
+  res.render('pp');
+});
+
+app.get('/terms-of-service', (req, res) => {
+  res.render('tos');
+});
+
+app.get('/support', (req, res) => {
+  res.render('support');
+});
+app.get('/contact', (req, res) => {
+  res.render('contact')
+});
+
+// Passport local strategy for authentication
 passport.use("local",
   new LocalStrategy({
     usernameField: 'username', 
