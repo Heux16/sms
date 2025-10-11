@@ -410,12 +410,10 @@ app.post('/teacher/setMarks', async (req, res) => {
         if (scores.hasOwnProperty(studentId)) {
           const { score_theory, score_practical, rollnumber, username, id } = scores[studentId];
           const total_score = (parseInt(score_theory) || 0) + (parseInt(score_practical) || 0);
-          console.log(`Inserting score for student ${studentId}: Theory=${score_theory}, Practical=${score_practical}, Total=${total_score}`);
+          console.log(`Inserting score for student ${id}: Theory=${score_theory}, Practical=${score_practical}, Total=${total_score}`);
           await db.query(
             `INSERT INTO student_scores (studentid, testid, score_theory, score_practical, total_score, graded_by) 
-             VALUES ($1, $2, $3, $4, $5, $6)
-             ON CONFLICT (studentid, testid) 
-             DO UPDATE SET score_theory = EXCLUDED.score_theory, score_practical = EXCLUDED.score_practical, total_score = EXCLUDED.total_score, graded_by = EXCLUDED.graded_by`,
+             VALUES ($1, $2, $3, $4, $5, $6)`,
             [id, testId, score_theory || null, score_practical || null, total_score, req.user.id]
           );
         }
