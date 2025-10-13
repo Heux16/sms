@@ -275,8 +275,10 @@ app.post('/addStudent', async (req, res) => {
   if(req.isAuthenticated() && (req.user.role === 'teacher')){
     const { username, rollNumber , clas, } = req.body;
     try {
-      const randomString = crypto.randomBytes(2).toString('hex');
-      const hashedPassword = await bcrypt.hash(username, saltRounds);
+      const classNum  = clas.slice(-1);
+      const namePart = username.slice(0, 3);
+      const password = namePart+ rollNumber+ classNum;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       await db.query("INSERT INTO users (username, password, role, rollNumber, class) VALUES ($1, $2, $3, $4, $5)", [username, hashedPassword, "student", rollNumber, clas]);
       res.redirect('/teacher/addstudents');
@@ -292,7 +294,7 @@ app.post('/addStudent', async (req, res) => {
 app.get('/teacher/allStudents', async (req, res) => {
   if(req.isAuthenticated() && (req.user.role === 'admin' || req.user.role === 'teacher')){
     try {
-      const result = await db.query("SELECT * FROM users where role='student'");
+      const result = await db.query("SELECT * FROM users where role='student' ORDER BY class, rollnumber");
 
       res.render('admin/allStudents', { students: result.rows, user: req.user });
     } catch (err) {
