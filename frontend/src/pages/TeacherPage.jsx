@@ -380,7 +380,7 @@ export default function TeacherPage() {
             </div>
           ) : null}
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
         {error ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
         {message ? (
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
@@ -453,7 +453,7 @@ export default function TeacherPage() {
           </article>
         </section>
 
-        <form id="set-marks" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" onSubmit={saveMarks}>
+        <form id="set-marks" className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" onSubmit={saveMarks}>
           <h3 className="text-lg font-semibold text-slate-900">Set Marks</h3>
           <label className="block space-y-1 text-sm text-slate-600">
             <span className="font-medium text-slate-700">Select Test</span>
@@ -483,8 +483,8 @@ export default function TeacherPage() {
           ) : null}
 
           {selectedTestId && marksData.students?.length ? (
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full border-collapse text-sm">
+            <div className="max-w-full overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-max w-full border-collapse text-sm">
                 <thead className="bg-slate-50 text-slate-700">
                   <tr>
                     <th className="border border-slate-200 px-3 py-2 text-left font-semibold">Student</th>
@@ -646,14 +646,14 @@ export default function TeacherPage() {
         {isLoadingProfile ? <p className="text-xs text-slate-500">Loading student profile...</p> : null}
 
         {studentProfile ? (
-          <section id="student-profile" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="student-profile" className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-slate-900">
               Student Profile: {studentProfile.student.username} ({studentProfile.student.class})
             </h3>
             <p className="text-sm text-slate-600">Roll Number: {studentProfile.student.rollnumber || 'NA'}</p>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full border-collapse text-sm">
+            <div className="max-w-full overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-max w-full border-collapse text-sm">
                 <thead className="bg-slate-50 text-slate-700">
                   <tr>
                     <th rowSpan="2" className="border border-slate-200 px-3 py-2 text-left font-semibold">Subject</th>
