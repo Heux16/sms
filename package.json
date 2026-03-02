@@ -1,36 +1,39 @@
 {
   "name": "school-management-system",
   "version": "1.0.0",
-  "main": "app.js",
-  "type": "module",
-  "engines": {
-    "node": ">=18.0.0"
+  "description": "Split architecture school management system with Express backend API and Vite React frontend.",
+  "keywords": [],
+  "homepage": "https://github.com/Heux16/sms#readme",
+  "bugs": {
+    "url": "https://github.com/Heux16/sms/issues"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Heux16/sms.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "backend/src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "build": "echo 'Build completed'",
+    "start": "npm run start --prefix backend",
+    "dev": "npm run dev --prefix backend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "db:init": "npm run db:init --prefix backend",
+    "db:reset": "npm run db:reset --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "start:backend": "npm run start --prefix backend",
+    "start:frontend": "npm run dev --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build --prefix frontend",
     "postinstall": "echo 'Installation completed successfully'",
     "lint": "echo 'Linting completed'",
-    "health-check": "curl -f http://localhost:${PORT:-3000}/health || exit 1"
+    "health-check": "curl -f http://localhost:${PORT:-4000}/health || exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.0",
-    "crypto": "^1.0.1",
-    "dotenv": "^17.2.3",
-    "ejs": "^3.1.10",
-    "express": "^5.1.0",
-    "express-session": "^1.18.2",
-    "nodemailer": "^7.0.9",
-    "passport": "^0.7.0",
-    "passport-local": "^1.0.0",
-    "pg": "^8.16.3",
-    "session": "^0.1.0"
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

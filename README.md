@@ -1,6 +1,64 @@
 # 🎓 School Management System
 
-A comprehensive school management system built with Node.js, Express, PostgreSQL, and EJS. Features role-based access for administrators, teachers, and students with exam management, grade tracking, and user administration.
+A split-architecture school management system with a dedicated Node.js/Express backend API and a Vite + React frontend.
+
+## 🧩 New Split Architecture (Backend + Frontend)
+
+This repository now includes a modern split setup:
+
+- `backend/` → Node.js + Express REST API (session auth, role-based endpoints, PostgreSQL)
+- `frontend/` → Vite + React client app consuming `/api/*`
+
+Legacy monolith files (`app.js`, `views/`, `public/`) have been removed.
+
+### Folder Overview
+
+```bash
+backend/
+  src/
+    config/
+    controllers/
+    middleware/
+    routes/
+    services/
+frontend/
+  src/
+    api/
+    components/
+    pages/
+    state/
+```
+
+### Run New Architecture Locally
+
+1. Install all dependencies:
+   ```bash
+   npm run install:all
+   ```
+
+2. Configure backend env:
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+
+3. Start backend API:
+   ```bash
+   npm run dev:backend
+   ```
+
+4. Start frontend app:
+   ```bash
+   npm run dev:frontend
+   ```
+
+5. Open frontend:
+   - `http://localhost:5173`
+
+Backend API runs on:
+- `http://localhost:4000`
+
+Health check:
+- `http://localhost:4000/health`
 
 ## ✨ Features
 
