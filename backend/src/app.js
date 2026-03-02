@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import passport from './config/passport.js';
 import { env } from './config/env.js';
-import { sessionMiddleware } from './config/session.js';
 import apiRoutes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
@@ -27,10 +25,6 @@ if (env.nodeEnv === 'production') {
     next();
   });
 }
-
-app.use(sessionMiddleware);
-app.use(passport.initialize());
-app.use(passport.session());
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', env: env.nodeEnv, time: new Date().toISOString() });

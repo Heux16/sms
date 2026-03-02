@@ -6,7 +6,7 @@ Node.js + Express backend for the School Management System.
 
 - Express 5
 - PostgreSQL (`pg`)
-- Session auth (`express-session` + `passport`)
+- JWT auth (`jsonwebtoken`)
 - Password hashing (`bcrypt`)
 
 ## Prerequisites
@@ -23,7 +23,8 @@ Required/important keys:
 
 - `PORT` (default: `4000`)
 - `FRONTEND_URL` (default: `http://localhost:5173`)
-- `SESSION_SECRET`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN` (default: `7d`)
 - `DATABASE_URL` (preferred in production)
 
 Optional local DB keys (if `DATABASE_URL` not set):
@@ -107,8 +108,8 @@ Reset drops these tables if present:
 
 ## Auth Model
 
-- Session/cookie based authentication
-- Cookie name: `sms.sid`
+- Bearer token (JWT) based authentication
+- Send `Authorization: Bearer <token>` on protected routes
 - Role-based access: `admin`, `teacher`, `student`
 
 ## API Routes

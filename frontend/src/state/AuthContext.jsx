@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { apiRequest } from '../api/client.js';
+import { apiRequest, clearAuthToken, getAuthToken, setAuthToken } from '../api/client.js';
 
 const AuthContext = createContext(null);
 
@@ -10,6 +10,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
+    const token = getAuthToken();
+    if (!token) {
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
     apiRequest('/api/auth/me')
       .then((result) => {
         if (mounted) {
@@ -17,6 +25,7 @@ export function AuthProvider({ children }) {
         }
       })
       .catch(() => {
+        clearAuthToken();
         if (mounted) {
           setUser(null);
         }
@@ -41,11 +50,16 @@ export function AuthProvider({ children }) {
           method: 'POST',
           body: JSON.stringify({ username, password })
         });
+        setAuthToken(result.token);
         setUser(result.user);
         return result.user;
       },
       async logout() {
-        await apiRequest('/api/auth/logout', { method: 'POST' });
+        try {
+          await apiRequest('/api/auth/logout', { method: 'POST' });
+        } catch {
+        }
+        clearAuthToken();
         setUser(null);
       }
     }),

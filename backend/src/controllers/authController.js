@@ -1,67 +1,85 @@
 import bcrypt from 'bcrypt';
-import passport from '../config/passport.js';
+import jwt from 'jsonwebtoken';
 import { db } from '../config/db.js';
+import { env } from '../config/env.js';
 
 const saltRounds = 10;
 
-export function login(req, res, next) {
-  passport.authenticate('local', (err, user, info) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.status(401).json({ message: info?.message || 'Invalid credentials' });
-    }
-
-    req.logIn(user, (loginErr) => {
-      if (loginErr) {
-        return next(loginErr);
-      }
-      return res.json({
-        message: 'Login successful',
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          class: user.class,
-          rollnumber: user.rollnumber
-        }
-      });
-    });
-  })(req, res, next);
+function toSafeUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    class: user.class,
+    rollnumber: user.rollnumber
+  };
 }
 
-export function logout(req, res, next) {
-  req.logout((err) => {
-    if (err) {
-      return next(err);
+function issueToken(user) {
+  return jwt.sign(
+    {
+      sub: user.id,
+      username: user.username,
+      role: user.role
+    },
+    env.jwtSecret,
+    { expiresIn: env.jwtExpiresIn }
+  );
+}
+
+export async function login(req, res, next) {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const password = String(req.body?.password || '');
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Username and password are required' });
     }
-    req.session.destroy(() => {
-      res.clearCookie('sms.sid');
-      res.json({ message: 'Logged out' });
+
+    const result = await db.query(
+      'SELECT id, username, password, role, class, rollnumber FROM users WHERE username = $1',
+      [username]
+    );
+
+    if (!result.rows.length) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const user = result.rows[0];
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = issueToken(user);
+
+    return res.json({
+      message: 'Login successful',
+      token,
+      user: toSafeUser(user)
     });
-  });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export function logout(req, res) {
+  return res.json({ message: 'Logged out' });
 }
 
 export function me(req, res) {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
   return res.json({
-    user: {
-      id: req.user.id,
-      username: req.user.username,
-      role: req.user.role,
-      class: req.user.class,
-      rollnumber: req.user.rollnumber
-    }
+    user: toSafeUser(req.user)
   });
 }
 
 export async function changePassword(req, res, next) {
   try {
-    if (!req.isAuthenticated() || !req.user?.id) {
+    if (!req.user?.id) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
