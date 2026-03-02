@@ -1,22 +1,62 @@
 import { Fragment, useEffect, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { apiRequest } from '../api/client.js';
+import LoadingSpinner from '../components/LoadingSpinner.jsx';
 
 export default function StudentPage() {
   const [data, setData] = useState({ exams: [], scores: [], subjectProfiles: [], overall: null });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  async function loadStudentDashboard({ background = false } = {}) {
+    if (background) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+      setError('');
+    }
+
+    try {
+      const result = await apiRequest('/api/student/dashboard');
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      if (background) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  }
 
   useEffect(() => {
-    apiRequest('/api/student/dashboard')
-      .then((result) => setData(result))
-      .catch((err) => setError(err.message));
+    loadStudentDashboard();
+
+    const intervalId = setInterval(() => {
+      loadStudentDashboard({ background: true });
+    }, 20000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const examOrder = data.exams.map((exam) => exam.exam_name);
 
+  if (isLoading) {
+    return (
+      <Layout title="Student Dashboard">
+        <div className="center-column full-height">
+          <LoadingSpinner label="Loading your dashboard..." />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout title="Student Dashboard">
       {error ? <p className="error">{error}</p> : null}
+      {isRefreshing ? <p className="meta-note">Refreshing data...</p> : null}
       <section className="grid-2">
         <article className="card">
           <h3>Published Exams</h3>

@@ -14,9 +14,9 @@ const dbConfig = env.databaseUrl
       port: env.dbPort
     };
 
-export const db = new pg.Client(dbConfig);
+export const db = new pg.Pool(dbConfig);
 
 export async function connectDB() {
-  await db.connect();
+  await db.query('SELECT 1');
   console.log('✅ Backend database connected');
 }

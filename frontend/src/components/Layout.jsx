@@ -16,7 +16,7 @@ export default function Layout({ title, children }) {
         <div>
           <h1>{title}</h1>
           <small>
-            {user?.username} ({user?.role})
+            MS Piparda · {user?.username} ({user?.role})
           </small>
         </div>
         <div className="topbar-actions">

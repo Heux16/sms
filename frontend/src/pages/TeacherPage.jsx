@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { apiRequest } from '../api/client.js';
+import LoadingSpinner from '../components/LoadingSpinner.jsx';
 
 export default function TeacherPage() {
   const [exams, setExams] = useState([]);
@@ -15,11 +16,23 @@ export default function TeacherPage() {
   const [marksInputs, setMarksInputs] = useState({});
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [isLoadingBase, setIsLoadingBase] = useState(true);
+  const [isRefreshingBase, setIsRefreshingBase] = useState(false);
+  const [isLoadingExamData, setIsLoadingExamData] = useState(false);
+  const [busyStudent, setBusyStudent] = useState(false);
+  const [busySubject, setBusySubject] = useState(false);
+  const [busyMarks, setBusyMarks] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [studentForm, setStudentForm] = useState({ username: '', rollNumber: '', clas: '' });
   const [testForm, setTestForm] = useState({ subject: '' });
 
-  async function loadBaseData() {
-    setError('');
+  async function loadBaseData({ background = false } = {}) {
+    if (background) {
+      setIsRefreshingBase(true);
+    } else {
+      setIsLoadingBase(true);
+      setError('');
+    }
     try {
       const [examResult, studentResult] = await Promise.all([
         apiRequest('/api/teacher/dashboard'),
@@ -29,11 +42,23 @@ export default function TeacherPage() {
       setStudents(studentResult);
     } catch (err) {
       setError(err.message);
+    } finally {
+      if (background) {
+        setIsRefreshingBase(false);
+      } else {
+        setIsLoadingBase(false);
+      }
     }
   }
 
   useEffect(() => {
     loadBaseData();
+
+    const intervalId = setInterval(() => {
+      loadBaseData({ background: true });
+    }, 20000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -55,18 +80,19 @@ export default function TeacherPage() {
       return;
     }
 
-    apiRequest(`/api/teacher/tests/${selectedExamId}`)
-      .then((result) => {
-        setSelectedExam(result.exam);
-        setTests(result.tests || []);
-      })
-      .catch((err) => setError(err.message));
+    setIsLoadingExamData(true);
 
-    apiRequest(`/api/teacher/marks/${selectedExamId}`)
-      .then((result) => {
-        setMarksData(result);
+    Promise.all([
+      apiRequest(`/api/teacher/tests/${selectedExamId}`),
+      apiRequest(`/api/teacher/marks/${selectedExamId}`)
+    ])
+      .then(([testsResult, marksResult]) => {
+        setSelectedExam(testsResult.exam);
+        setTests(testsResult.tests || []);
+        setMarksData(marksResult);
+
         const initialInputs = {};
-        (result.students || []).forEach((student) => {
+        (marksResult.students || []).forEach((student) => {
           initialInputs[student.id] = {
             score_theory: '',
             score_practical: ''
@@ -74,7 +100,8 @@ export default function TeacherPage() {
         });
         setMarksInputs(initialInputs);
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setIsLoadingExamData(false));
   }, [selectedExamId]);
 
   useEffect(() => {
@@ -97,6 +124,7 @@ export default function TeacherPage() {
     event.preventDefault();
     setError('');
     setMessage('');
+    setBusyStudent(true);
     try {
       const result = await apiRequest('/api/teacher/students', {
         method: 'POST',
@@ -107,6 +135,8 @@ export default function TeacherPage() {
       await loadBaseData();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusyStudent(false);
     }
   }
 
@@ -119,6 +149,7 @@ export default function TeacherPage() {
 
     setError('');
     setMessage('');
+    setBusySubject(true);
     try {
       await apiRequest('/api/teacher/tests', {
         method: 'POST',
@@ -132,6 +163,8 @@ export default function TeacherPage() {
       setMessage('Subject added to exam');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusySubject(false);
     }
   }
 
@@ -154,6 +187,7 @@ export default function TeacherPage() {
 
     setError('');
     setMessage('');
+    setBusyMarks(true);
     try {
       const scores = {};
       Object.entries(marksInputs).forEach(([studentId, values]) => {
@@ -174,6 +208,8 @@ export default function TeacherPage() {
       setMessage('Marks saved successfully');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusyMarks(false);
     }
   }
 
@@ -184,20 +220,34 @@ export default function TeacherPage() {
     }
 
     setError('');
+    setIsLoadingProfile(true);
     try {
       const result = await apiRequest(`/api/teacher/students/${studentId}/profile`);
       setStudentProfile(result);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsLoadingProfile(false);
     }
   }
 
   const studentExamOrder = studentProfile?.exams?.map((exam) => exam.exam_name) || [];
 
+  if (isLoadingBase) {
+    return (
+      <Layout title="Teacher Dashboard">
+        <div className="center-column full-height">
+          <LoadingSpinner label="Loading teacher data..." />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout title="Teacher Dashboard">
       {error ? <p className="error">{error}</p> : null}
       {message ? <p className="success">{message}</p> : null}
+      {isRefreshingBase ? <p className="meta-note">Refreshing dashboard...</p> : null}
       <section className="grid-2">
         <form className="card" onSubmit={addStudent}>
           <h3>Add Student</h3>
@@ -225,7 +275,9 @@ export default function TeacherPage() {
               </option>
             ))}
           </select>
-          <button type="submit">Save Student</button>
+          <button type="submit" disabled={busyStudent}>
+            {busyStudent ? <LoadingSpinner size="sm" label="Saving..." /> : 'Save Student'}
+          </button>
         </form>
 
         <article className="card">
@@ -259,6 +311,7 @@ export default function TeacherPage() {
               ? `${selectedExam.exam_name} (${selectedExam.class}) max: Theory ${selectedExam.max_theory}, Practical ${selectedExam.max_practical}`
               : 'Select an exam to load subject list'}
           </p>
+          {isLoadingExamData ? <LoadingSpinner size="sm" label="Loading exam details..." /> : null}
           <ul>
             {tests.map((test) => (
               <li key={test.testid}>{test.subject}</li>
@@ -272,8 +325,8 @@ export default function TeacherPage() {
               disabled={!selectedExamId}
               required
             />
-            <button type="submit" disabled={!selectedExamId}>
-              Add Subject
+            <button type="submit" disabled={!selectedExamId || busySubject}>
+              {busySubject ? <LoadingSpinner size="sm" label="Adding..." /> : 'Add Subject'}
             </button>
           </form>
         </article>
@@ -307,6 +360,8 @@ export default function TeacherPage() {
           </ul>
         </article>
       </section>
+
+      {isLoadingProfile ? <p className="meta-note">Loading student profile...</p> : null}
 
       {studentProfile ? (
         <section className="card">
@@ -422,8 +477,8 @@ export default function TeacherPage() {
           </div>
         ) : null}
 
-        <button type="submit" disabled={!selectedTestId}>
-          Save Marks
+        <button type="submit" disabled={!selectedTestId || busyMarks}>
+          {busyMarks ? <LoadingSpinner size="sm" label="Saving marks..." /> : 'Save Marks'}
         </button>
       </form>
     </Layout>

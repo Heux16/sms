@@ -2,11 +2,12 @@ import bcrypt from 'bcrypt';
 import { db } from '../config/db.js';
 
 const saltRounds = 10;
+const safeUserFields = 'id, username, role, rollnumber, class, created_at';
 
 export async function getDashboard(req, res, next) {
   try {
-    const teachers = await db.query("SELECT * FROM users WHERE role='teacher'");
-    const students = await db.query("SELECT * FROM users WHERE role='student'");
+    const teachers = await db.query(`SELECT ${safeUserFields} FROM users WHERE role='teacher'`);
+    const students = await db.query(`SELECT ${safeUserFields} FROM users WHERE role='student'`);
     const publishedExams = await db.query('SELECT * FROM exams WHERE is_published = TRUE');
     const unpublishedExams = await db.query('SELECT * FROM exams WHERE is_published = FALSE');
 
@@ -23,7 +24,7 @@ export async function getDashboard(req, res, next) {
 
 export async function getTeachers(req, res, next) {
   try {
-    const result = await db.query("SELECT * FROM users WHERE role='teacher' ORDER BY id DESC");
+    const result = await db.query(`SELECT ${safeUserFields} FROM users WHERE role='teacher' ORDER BY id DESC`);
     res.json(result.rows);
   } catch (error) {
     next(error);
@@ -48,10 +49,82 @@ export async function addTeacher(req, res, next) {
 
 export async function getStudents(req, res, next) {
   try {
-    const result = await db.query("SELECT * FROM users WHERE role='student' ORDER BY class, rollnumber");
+    const result = await db.query(`SELECT ${safeUserFields} FROM users WHERE role='student' ORDER BY class, rollnumber`);
     res.json(result.rows);
   } catch (error) {
     next(error);
+  }
+}
+
+export async function getUsers(req, res, next) {
+  try {
+    const result = await db.query(
+      `SELECT ${safeUserFields}
+       FROM users
+       ORDER BY CASE role
+         WHEN 'admin' THEN 1
+         WHEN 'teacher' THEN 2
+         WHEN 'student' THEN 3
+         ELSE 9
+       END,
+       class,
+       rollnumber,
+       id`
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateUserCredentials(req, res, next) {
+  try {
+    const userId = Number(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ message: 'Invalid user id' });
+    }
+
+    const nextUsername = String(req.body.username || '').trim();
+    const nextPassword = String(req.body.password || '');
+
+    if (!nextUsername) {
+      return res.status(400).json({ message: 'Username is required' });
+    }
+
+    const existing = await db.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (!existing.rows.length) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (nextPassword) {
+      const hashedPassword = await bcrypt.hash(nextPassword, saltRounds);
+      const result = await db.query(
+        `UPDATE users
+         SET username = $1,
+             password = $2
+         WHERE id = $3
+         RETURNING ${safeUserFields}`,
+        [nextUsername, hashedPassword, userId]
+      );
+
+      return res.json({ message: 'User updated', user: result.rows[0] });
+    }
+
+    const result = await db.query(
+      `UPDATE users
+       SET username = $1
+       WHERE id = $2
+       RETURNING ${safeUserFields}`,
+      [nextUsername, userId]
+    );
+
+    return res.json({ message: 'User updated', user: result.rows[0] });
+  } catch (error) {
+    if (error?.code === '23505') {
+      return res.status(409).json({ message: 'Username already exists' });
+    }
+    return next(error);
   }
 }
 

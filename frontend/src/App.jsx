@@ -8,12 +8,17 @@ import TermsPage from './pages/TermsPage.jsx';
 import SupportPage from './pages/SupportPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import { useAuth } from './state/AuthContext.jsx';
+import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="center">Loading...</div>;
+    return (
+      <div className="center full-height">
+        <LoadingSpinner label="Checking session..." />
+      </div>
+    );
   }
 
   if (!user) {
@@ -31,7 +36,11 @@ function HomeRedirect() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="center">Loading...</div>;
+    return (
+      <div className="center full-height">
+        <LoadingSpinner label="Loading account..." />
+      </div>
+    );
   }
 
   if (!user) {

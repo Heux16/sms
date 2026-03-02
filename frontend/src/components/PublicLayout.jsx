@@ -4,7 +4,7 @@ export default function PublicLayout({ title, subtitle, children }) {
   return (
     <div className="public-shell">
       <header className="public-topbar">
-        <h1>School Management System</h1>
+        <h1>MS Piparda School Management System</h1>
         <Link to="/login">Back to Login</Link>
       </header>
 

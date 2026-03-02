@@ -23,6 +23,7 @@
     "dev:backend": "npm run dev --prefix backend",
     "db:init": "npm run db:init --prefix backend",
     "db:reset": "npm run db:reset --prefix backend",
+    "db:import-students": "npm run db:import-students --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "start:backend": "npm run start --prefix backend",
     "start:frontend": "npm run dev --prefix frontend",
