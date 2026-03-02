@@ -4,6 +4,17 @@ import { apiRequest } from '../api/client.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { Menu, X } from 'lucide-react';
 
+const PROFILE_SUBJECT_ORDER = [
+  'hindi',
+  'english',
+  'sanskrit',
+  'science',
+  'sst',
+  'kaushal bodh',
+  'khel yatra',
+  'kriti'
+];
+
 export default function TeacherPage() {
   const [exams, setExams] = useState([]);
   const [students, setStudents] = useState([]);
@@ -293,6 +304,26 @@ export default function TeacherPage() {
   }
 
   const studentExamOrder = studentProfile?.exams?.map((exam) => exam.exam_name) || [];
+  const orderedStudentProfileSubjects = useMemo(() => {
+    if (!studentProfile?.subjectProfiles?.length) {
+      return [];
+    }
+
+    const orderIndex = new Map(PROFILE_SUBJECT_ORDER.map((subject, index) => [subject, index]));
+
+    return [...studentProfile.subjectProfiles].sort((first, second) => {
+      const firstKey = String(first.subject || '').trim().toLowerCase();
+      const secondKey = String(second.subject || '').trim().toLowerCase();
+      const firstIndex = orderIndex.has(firstKey) ? orderIndex.get(firstKey) : Number.MAX_SAFE_INTEGER;
+      const secondIndex = orderIndex.has(secondKey) ? orderIndex.get(secondKey) : Number.MAX_SAFE_INTEGER;
+
+      if (firstIndex !== secondIndex) {
+        return firstIndex - secondIndex;
+      }
+
+      return String(first.subject || '').localeCompare(String(second.subject || ''));
+    });
+  }, [studentProfile]);
   const profilePageSize = 8;
   const profileClasses = useMemo(() => {
     const values = new Set(students.map((student) => student.class).filter(Boolean));
@@ -428,46 +459,6 @@ export default function TeacherPage() {
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
         ) : null}
         {isRefreshingBase ? <p className="text-xs text-slate-500">Refreshing dashboard...</p> : null}
-
-        <section id="teacher-password" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <form className="space-y-4" onSubmit={changePassword}>
-            <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
-            <input
-              type="password"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
-              placeholder="Old password"
-              value={passwordForm.oldPassword}
-              onChange={(e) => setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))}
-              required
-              autoComplete="current-password"
-            />
-            <input
-              type="password"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
-              placeholder="New password"
-              value={passwordForm.newPassword}
-              onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-              required
-              autoComplete="new-password"
-            />
-            <input
-              type="password"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
-              placeholder="Confirm new password"
-              value={passwordForm.confirmPassword}
-              onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-              required
-              autoComplete="new-password"
-            />
-            <button
-              type="submit"
-              disabled={busyPassword}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
-            >
-              {busyPassword ? <LoadingSpinner size="sm" label="Updating password..." /> : 'Update Password'}
-            </button>
-          </form>
-        </section>
 
         <section id="teacher-setup" className="grid gap-4 lg:grid-cols-2">
           <form className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" onSubmit={addStudent}>
@@ -759,7 +750,7 @@ export default function TeacherPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {studentProfile.subjectProfiles.map((profile) => (
+                  {orderedStudentProfileSubjects.map((profile) => (
                     <tr key={profile.subject} className="bg-white">
                       <td className="border border-slate-200 px-3 py-2">{profile.subject}</td>
                       {studentExamOrder.map((examName) => (
@@ -783,6 +774,46 @@ export default function TeacherPage() {
             </p>
           </section>
         ) : null}
+
+        <section id="teacher-password" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <form className="space-y-4" onSubmit={changePassword}>
+            <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="Old password"
+              value={passwordForm.oldPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))}
+              required
+              autoComplete="current-password"
+            />
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="New password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="Confirm new password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+            />
+            <button
+              type="submit"
+              disabled={busyPassword}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {busyPassword ? <LoadingSpinner size="sm" label="Updating password..." /> : 'Update Password'}
+            </button>
+          </form>
+        </section>
 
           </div>
         </div>
