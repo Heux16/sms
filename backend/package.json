@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "db:init": "node src/scripts/initDatabase.js",
     "db:reset": "node src/scripts/resetDatabase.js",
-    "db:import-students": "node src/scripts/importStudents.js"
+    "db:import-students": "node src/scripts/importStudents.js",
+    "db:export-student-passwords": "node src/scripts/exportStudentPasswords.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

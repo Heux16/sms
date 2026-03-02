@@ -13,6 +13,7 @@ async function resetDatabase() {
 
     await db.query('BEGIN');
 
+    await db.query('DROP TABLE IF EXISTS promotion_archive CASCADE');
     await db.query('DROP TABLE IF EXISTS student_scores CASCADE');
     await db.query('DROP TABLE IF EXISTS tests CASCADE');
     await db.query('DROP TABLE IF EXISTS exams CASCADE');

@@ -24,13 +24,13 @@ export function calculateTermGrade(scoreOutOf100) {
 
 export function calculateGrade(scoreOutOf100) {
   const score = Number(scoreOutOf100 || 0);
-  if (score >= 90) return 'A+';
-  if (score >= 80) return 'A';
-  if (score >= 70) return 'B+';
-  if (score >= 60) return 'B';
-  if (score >= 50) return 'C+';
-  if (score >= 40) return 'C';
-  if (score >= 30) return 'D';
+  if (score >= 91) return 'A+';
+  if (score >= 81) return 'A';
+  if (score >= 71) return 'B+';
+  if (score >= 61) return 'B';
+  if (score >= 51) return 'C+';
+  if (score >= 41) return 'C';
+  if (score >= 33) return 'D';
   return 'E';
 }
 

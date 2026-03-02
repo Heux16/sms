@@ -8,6 +8,7 @@ import {
   getTeachers,
   getUsers,
   publishExam,
+  runPromotionWorkflow,
   unpublishExam,
   updateUserCredentials
 } from '../controllers/adminController.js';
@@ -27,5 +28,6 @@ router.get('/exams', getExams);
 router.post('/exams', addExam);
 router.post('/exams/publish', publishExam);
 router.post('/exams/unpublish', unpublishExam);
+router.post('/promotions/run', runPromotionWorkflow);
 
 export default router;

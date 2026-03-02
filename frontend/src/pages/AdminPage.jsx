@@ -65,6 +65,15 @@ export default function AdminPage() {
   const [previousStats, setPreviousStats] = useState({ teachers: 0, students: 0, published: 0 });
   const [currentStats, setCurrentStats] = useState({ teachers: 0, students: 0, published: 0 });
   const [form, setForm] = useState({ username: '', password: '' });
+  const [promotionForm, setPromotionForm] = useState(() => {
+    const now = new Date();
+    return {
+      graduatingClass: '12',
+      archiveLabel: `${now.getFullYear()}-${now.getFullYear() + 1}`
+    };
+  });
+  const [promotionResult, setPromotionResult] = useState(null);
+  const [busyPromotion, setBusyPromotion] = useState(false);
   const [examForm, setExamForm] = useState({
     exam_name: '',
     class: '',
@@ -284,6 +293,44 @@ export default function AdminPage() {
     }
   }
 
+  async function runPromotion(event) {
+    event.preventDefault();
+    setError('');
+
+    const graduatingClass = String(promotionForm.graduatingClass || '').trim();
+    const archiveLabel = String(promotionForm.archiveLabel || '').trim();
+
+    if (!graduatingClass || !archiveLabel) {
+      setError('Graduating class and archive label are required');
+      return;
+    }
+
+    const shouldProceed = window.confirm(
+      `Run promotion workflow now? Students in class ${graduatingClass} will be archived as graduated and other classes will be promoted with new roll numbers.`
+    );
+
+    if (!shouldProceed) {
+      return;
+    }
+
+    setBusyPromotion(true);
+    try {
+      const response = await apiRequest('/api/admin/promotions/run', {
+        method: 'POST',
+        body: JSON.stringify({ graduatingClass, archiveLabel })
+      });
+
+      setPromotionResult(response);
+      showToast(response?.message || 'Promotion workflow completed');
+      await loadDashboard();
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, 'error');
+    } finally {
+      setBusyPromotion(false);
+    }
+  }
+
   async function updateUser(userId) {
     const draft = userEdits[userId] || { username: '', password: '' };
     const username = String(draft.username || '').trim();
@@ -369,6 +416,7 @@ export default function AdminPage() {
     { id: 'summary', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'teacher-form', label: 'Add Teacher', icon: UserPlus },
     { id: 'exam-form', label: 'Create Exam', icon: BookOpen },
+    { id: 'promotion-workflow', label: 'Promotion', icon: GraduationCap },
     { id: 'manage-users', label: 'Manage Users', icon: Users },
     { id: 'exam-status', label: 'Exam Status', icon: ClipboardList }
   ];
@@ -504,6 +552,14 @@ export default function AdminPage() {
                     >
                       <UserPlus size={16} />
                       Add Teacher
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => jumpTo('promotion-workflow')}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    >
+                      <GraduationCap size={16} />
+                      Run Promotion
                     </button>
                   </div>
                 </div>
@@ -743,6 +799,76 @@ export default function AdminPage() {
                   </button>
                 </div>
               </form>
+            </section>
+
+            <section id="promotion-workflow" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+              <form className="space-y-4" onSubmit={runPromotion}>
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="rounded-lg bg-brand-50 p-2 text-brand-600">
+                    <GraduationCap size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Promotion Workflow</h3>
+                    <p className="text-sm text-slate-500">End-of-year promotion with roll regeneration and archive</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-slate-700">Graduating Class</span>
+                    <input
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+                      value={promotionForm.graduatingClass}
+                      onChange={(e) =>
+                        setPromotionForm((prev) => ({
+                          ...prev,
+                          graduatingClass: e.target.value
+                        }))
+                      }
+                      placeholder="12"
+                      required
+                    />
+                  </label>
+
+                  <label className="block space-y-1">
+                    <span className="text-sm font-medium text-slate-700">Archive Label</span>
+                    <input
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+                      value={promotionForm.archiveLabel}
+                      onChange={(e) =>
+                        setPromotionForm((prev) => ({
+                          ...prev,
+                          archiveLabel: e.target.value
+                        }))
+                      }
+                      placeholder="2026-2027"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={busyPromotion}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {busyPromotion ? <LoadingSpinner size="sm" label="Running..." /> : <><GraduationCap size={16} />Run Promotion</>}
+                </button>
+              </form>
+
+              {promotionResult?.summary ? (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                  <p className="font-semibold text-slate-800">Last run: {promotionResult.archiveLabel}</p>
+                  <p className="mt-1">
+                    Total: {promotionResult.summary.total} · Promoted: {promotionResult.summary.promoted} · Graduated:{' '}
+                    {promotionResult.summary.graduated}
+                  </p>
+                  <p className="mt-1">
+                    Skipped (invalid class): {promotionResult.summary.skippedInvalidClass} · Skipped (above graduation):{' '}
+                    {promotionResult.summary.skippedAboveGraduation}
+                  </p>
+                </div>
+              ) : null}
             </section>
 
             <section id="manage-users" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">

@@ -7,9 +7,12 @@ import { Menu, X } from 'lucide-react';
 export default function StudentPage() {
   const [data, setData] = useState({ exams: [], scores: [], subjectProfiles: [], overall: null });
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [busyPassword, setBusyPassword] = useState(false);
 
   async function loadStudentDashboard({ background = false } = {}) {
     if (background) {
@@ -46,8 +49,48 @@ export default function StudentPage() {
   const examOrder = data.exams.map((exam) => exam.exam_name);
   const navItems = [
     { id: 'student-summary', label: 'Overview' },
-    { id: 'student-marks', label: 'Subject-wise Marks' }
+    { id: 'student-marks', label: 'Subject-wise Marks' },
+    { id: 'student-password', label: 'Change Password' }
   ];
+
+  async function changePassword(event) {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setError('All password fields are required');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setError('New password and confirm password do not match');
+      return;
+    }
+
+    setBusyPassword(true);
+    try {
+      const result = await apiRequest('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          oldPassword: passwordForm.oldPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setMessage(result?.message || 'Password changed successfully');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyPassword(false);
+    }
+  }
 
   function jumpTo(sectionId) {
     const target = document.getElementById(sectionId);
@@ -134,6 +177,7 @@ export default function StudentPage() {
 
           <div className="min-w-0 space-y-6">
         {error ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
+        {message ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p> : null}
         {isRefreshing ? <p className="text-xs text-slate-500">Refreshing data...</p> : null}
 
         <section id="student-summary" className="grid gap-4 lg:grid-cols-2">
@@ -216,6 +260,46 @@ export default function StudentPage() {
               <strong>{data.overall.grade}</strong>
             </p>
           ) : null}
+        </section>
+
+        <section id="student-password" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <form className="space-y-4" onSubmit={changePassword}>
+            <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="Old password"
+              value={passwordForm.oldPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))}
+              required
+              autoComplete="current-password"
+            />
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="New password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="Confirm new password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+            />
+            <button
+              type="submit"
+              disabled={busyPassword}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {busyPassword ? <LoadingSpinner size="sm" label="Updating password..." /> : 'Update Password'}
+            </button>
+          </form>
         </section>
           </div>
         </div>

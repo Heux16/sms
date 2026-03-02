@@ -4,6 +4,47 @@ import { db } from '../config/db.js';
 const saltRounds = 10;
 const safeUserFields = 'id, username, role, rollnumber, class, created_at';
 
+function parseClassNumber(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return null;
+  }
+
+  const match = raw.match(/(\d+)/);
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number(match[1]);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function formatPromotedClass(previousClass, nextNumber) {
+  const raw = String(previousClass || '').trim();
+  if (!raw) {
+    return String(nextNumber);
+  }
+
+  if (/^class\s*\d+/i.test(raw)) {
+    return `Class ${nextNumber}`;
+  }
+
+  if (/^\d+$/.test(raw)) {
+    return String(nextNumber);
+  }
+
+  return raw.replace(/\d+/, String(nextNumber));
+}
+
+function rollSortValue(rollnumber) {
+  const digits = String(rollnumber || '').trim().match(/\d+/);
+  if (!digits) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  const parsed = Number(digits[0]);
+  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
 export async function getDashboard(req, res, next) {
   try {
     const teachers = await db.query(`SELECT ${safeUserFields} FROM users WHERE role='teacher'`);
@@ -270,5 +311,192 @@ export async function unpublishExam(req, res, next) {
     });
   } catch (error) {
     next(error);
+  }
+}
+
+export async function runPromotionWorkflow(req, res, next) {
+  const rawGraduatingClass = req.body?.graduatingClass;
+  const graduationClassNumber = parseClassNumber(rawGraduatingClass ?? '12');
+
+  if (!graduationClassNumber || graduationClassNumber <= 0) {
+    return res.status(400).json({ message: 'Valid graduating class is required' });
+  }
+
+  const now = new Date();
+  const defaultArchiveLabel = `${now.getFullYear()}-${now.getFullYear() + 1}`;
+  const archiveLabel = String(req.body?.archiveLabel || defaultArchiveLabel).trim();
+
+  if (!archiveLabel) {
+    return res.status(400).json({ message: 'Archive label is required' });
+  }
+
+  const batchId = `batch_${Date.now()}`;
+  const promotedBy = req.user?.id || null;
+  const client = await db.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const studentsResult = await client.query(
+      `SELECT id, username, class, rollnumber
+       FROM users
+       WHERE role='student'
+       ORDER BY id`
+    );
+
+    if (!studentsResult.rows.length) {
+      await client.query('COMMIT');
+      return res.json({
+        message: 'No student records found to promote',
+        batchId,
+        summary: {
+          total: 0,
+          promoted: 0,
+          graduated: 0,
+          skippedInvalidClass: 0,
+          skippedAboveGraduation: 0
+        }
+      });
+    }
+
+    const records = studentsResult.rows.map((student) => {
+      const currentClassNumber = parseClassNumber(student.class);
+      const oldClass = student.class ? String(student.class).trim() : null;
+      const oldRollnumber = student.rollnumber ? String(student.rollnumber).trim() : null;
+
+      if (!currentClassNumber) {
+        return {
+          student,
+          oldClass,
+          oldRollnumber,
+          action: 'skipped_invalid_class',
+          newClass: oldClass,
+          newRollnumber: oldRollnumber
+        };
+      }
+
+      if (currentClassNumber === graduationClassNumber) {
+        return {
+          student,
+          oldClass,
+          oldRollnumber,
+          action: 'graduated',
+          newClass: oldClass,
+          newRollnumber: oldRollnumber
+        };
+      }
+
+      if (currentClassNumber > graduationClassNumber) {
+        return {
+          student,
+          oldClass,
+          oldRollnumber,
+          action: 'skipped_above_graduation',
+          newClass: oldClass,
+          newRollnumber: oldRollnumber
+        };
+      }
+
+      const nextClassNumber = currentClassNumber + 1;
+
+      return {
+        student,
+        oldClass,
+        oldRollnumber,
+        action: 'promoted',
+        newClass: formatPromotedClass(oldClass, nextClassNumber),
+        newRollnumber: null
+      };
+    });
+
+    const promotionsByClass = new Map();
+    records
+      .filter((record) => record.action === 'promoted')
+      .forEach((record) => {
+        const key = record.newClass || '';
+        if (!promotionsByClass.has(key)) {
+          promotionsByClass.set(key, []);
+        }
+        promotionsByClass.get(key).push(record);
+      });
+
+    promotionsByClass.forEach((classRecords) => {
+      classRecords.sort((a, b) => {
+        const rollDelta = rollSortValue(a.oldRollnumber) - rollSortValue(b.oldRollnumber);
+        if (rollDelta !== 0) {
+          return rollDelta;
+        }
+
+        const nameDelta = String(a.student.username || '').localeCompare(String(b.student.username || ''));
+        if (nameDelta !== 0) {
+          return nameDelta;
+        }
+
+        return Number(a.student.id) - Number(b.student.id);
+      });
+
+      classRecords.forEach((record, index) => {
+        record.newRollnumber = String(index + 1);
+      });
+    });
+
+    for (const record of records) {
+      await client.query(
+        `INSERT INTO promotion_archive
+           (batch_id, archive_label, studentid, username, old_class, old_rollnumber, new_class, new_rollnumber, action, promoted_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          batchId,
+          archiveLabel,
+          record.student.id,
+          record.student.username,
+          record.oldClass,
+          record.oldRollnumber,
+          record.newClass,
+          record.newRollnumber,
+          record.action,
+          promotedBy
+        ]
+      );
+    }
+
+    for (const record of records) {
+      if (record.action !== 'promoted') {
+        continue;
+      }
+
+      await client.query(
+        `UPDATE users
+         SET class = $1,
+             rollnumber = $2
+         WHERE id = $3`,
+        [record.newClass, record.newRollnumber, record.student.id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    const promoted = records.filter((record) => record.action === 'promoted').length;
+    const graduated = records.filter((record) => record.action === 'graduated').length;
+    const skippedInvalidClass = records.filter((record) => record.action === 'skipped_invalid_class').length;
+    const skippedAboveGraduation = records.filter((record) => record.action === 'skipped_above_graduation').length;
+
+    return res.json({
+      message: `Promotion workflow completed. ${promoted} students promoted.`,
+      batchId,
+      archiveLabel,
+      summary: {
+        total: records.length,
+        promoted,
+        graduated,
+        skippedInvalidClass,
+        skippedAboveGraduation
+      }
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    return next(error);
+  } finally {
+    client.release();
   }
 }

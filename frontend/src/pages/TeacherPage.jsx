@@ -26,6 +26,8 @@ export default function TeacherPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [studentForm, setStudentForm] = useState({ username: '', rollNumber: '', clas: '' });
   const [testForm, setTestForm] = useState({ subject: '' });
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [busyPassword, setBusyPassword] = useState(false);
   const [profileClassFilter, setProfileClassFilter] = useState('all');
   const [profilePage, setProfilePage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -251,6 +253,45 @@ export default function TeacherPage() {
     }
   }
 
+  async function changePassword(event) {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setError('All password fields are required');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setError('New password and confirm password do not match');
+      return;
+    }
+
+    setBusyPassword(true);
+    try {
+      const result = await apiRequest('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          oldPassword: passwordForm.oldPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setMessage(result?.message || 'Password changed successfully');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyPassword(false);
+    }
+  }
+
   const studentExamOrder = studentProfile?.exams?.map((exam) => exam.exam_name) || [];
   const profilePageSize = 8;
   const profileClasses = useMemo(() => {
@@ -294,7 +335,8 @@ export default function TeacherPage() {
     { id: 'teacher-setup', label: 'Setup' },
     { id: 'set-marks', label: 'Set Marks' },
     { id: 'subjects-students', label: 'Subjects & Students' },
-    { id: 'student-profile', label: 'Student Profile' }
+    { id: 'student-profile', label: 'Student Profile' },
+    { id: 'teacher-password', label: 'Change Password' }
   ];
 
   function jumpTo(sectionId) {
@@ -386,6 +428,46 @@ export default function TeacherPage() {
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>
         ) : null}
         {isRefreshingBase ? <p className="text-xs text-slate-500">Refreshing dashboard...</p> : null}
+
+        <section id="teacher-password" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <form className="space-y-4" onSubmit={changePassword}>
+            <h3 className="text-lg font-semibold text-slate-900">Change Password</h3>
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="Old password"
+              value={passwordForm.oldPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, oldPassword: e.target.value }))}
+              required
+              autoComplete="current-password"
+            />
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="New password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-100"
+              placeholder="Confirm new password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+            />
+            <button
+              type="submit"
+              disabled={busyPassword}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {busyPassword ? <LoadingSpinner size="sm" label="Updating password..." /> : 'Update Password'}
+            </button>
+          </form>
+        </section>
 
         <section id="teacher-setup" className="grid gap-4 lg:grid-cols-2">
           <form className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" onSubmit={addStudent}>

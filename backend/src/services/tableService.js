@@ -73,4 +73,31 @@ export async function initializeTables(db) {
     ON tests (examid, subject);
   `);
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS promotion_archive (
+      id SERIAL PRIMARY KEY,
+      batch_id VARCHAR(64) NOT NULL,
+      archive_label VARCHAR(30) NOT NULL,
+      studentid INT NOT NULL REFERENCES users(id),
+      username VARCHAR(50) NOT NULL,
+      old_class VARCHAR(20),
+      old_rollnumber VARCHAR(20),
+      new_class VARCHAR(20),
+      new_rollnumber VARCHAR(20),
+      action VARCHAR(40) NOT NULL,
+      promoted_by INT REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS ix_promotion_archive_batch
+    ON promotion_archive (batch_id);
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS ix_promotion_archive_student
+    ON promotion_archive (studentid);
+  `);
+
 }

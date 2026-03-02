@@ -85,8 +85,21 @@ Reset everything (drop all app tables, recreate, seed admin user):
 npm run db:reset
 ```
 
+Export student credentials CSV:
+
+```bash
+npm run db:export-student-passwords
+```
+
+Optional: also sync each student's DB password to the generated password before export:
+
+```bash
+SYNC_PASSWORDS=true npm run db:export-student-passwords
+```
+
 Reset drops these tables if present:
 
+- `promotion_archive`
 - `student_scores`
 - `tests`
 - `exams`
@@ -107,6 +120,7 @@ Base prefix: `/api`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `POST /api/auth/change-password` (teacher/student: requires old password)
 
 ### Admin
 
@@ -118,6 +132,7 @@ Base prefix: `/api`
 - `POST /api/admin/exams` (dynamic exam creation/update)
 - `POST /api/admin/exams/publish`
 - `POST /api/admin/exams/unpublish`
+- `POST /api/admin/promotions/run` (end-of-year class promotion + roll regeneration + archive)
 
 ### Teacher
 
