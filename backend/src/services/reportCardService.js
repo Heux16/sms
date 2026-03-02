@@ -31,7 +31,8 @@ export async function buildStudentReportCard(db, studentId, options = {}) {
        max_practical,
        weightage
      FROM exams
-    WHERE class = $1${examPublishClause}
+    WHERE LOWER(REGEXP_REPLACE(TRIM(class), '^class\\s*', '', 'i')) =
+          LOWER(REGEXP_REPLACE(TRIM($1), '^class\\s*', '', 'i'))${examPublishClause}
      ORDER BY created_at, exam_name`,
     [student.class]
   );
@@ -43,7 +44,8 @@ export async function buildStudentReportCard(db, studentId, options = {}) {
      INNER JOIN exams e ON e.examid = t.examid
      WHERE ss.studentid = $1
        ${scorePublishClause}
-       AND e.class = $2
+       AND LOWER(REGEXP_REPLACE(TRIM(e.class), '^class\\s*', '', 'i')) =
+           LOWER(REGEXP_REPLACE(TRIM($2), '^class\\s*', '', 'i'))
      ORDER BY ss.created_at DESC`,
     [student.id, student.class]
   );
@@ -58,7 +60,8 @@ export async function buildStudentReportCard(db, studentId, options = {}) {
     `SELECT DISTINCT t.subject
      FROM tests t
      INNER JOIN exams e ON e.examid = t.examid
-     WHERE e.class = $1
+     WHERE LOWER(REGEXP_REPLACE(TRIM(e.class), '^class\\s*', '', 'i')) =
+           LOWER(REGEXP_REPLACE(TRIM($1), '^class\\s*', '', 'i'))
      ORDER BY t.subject ASC`,
     [student.class]
   );

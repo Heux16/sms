@@ -127,7 +127,14 @@ export async function getMarksSetup(req, res, next) {
 
     const exam = examResult.rows[0];
     const tests = await db.query('SELECT * FROM tests WHERE examid = $1', [examId]);
-    const students = await db.query("SELECT * FROM users WHERE role='student' AND class = $1", [exam.class]);
+    const students = await db.query(
+      `SELECT *
+       FROM users
+       WHERE role = 'student'
+         AND LOWER(REGEXP_REPLACE(TRIM(class), '^class\\s*', '', 'i')) =
+             LOWER(REGEXP_REPLACE(TRIM($1), '^class\\s*', '', 'i'))`,
+      [exam.class]
+    );
     const marks = await db.query(
       `SELECT ss.studentid, ss.testid, ss.score_theory, ss.score_practical, ss.total_score
        FROM student_scores ss

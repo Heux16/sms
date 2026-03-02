@@ -15,7 +15,7 @@ function ProtectedRoute({ children, roles }) {
 
   if (loading) {
     return (
-      <div className="center full-height">
+      <div className="flex min-h-screen items-center justify-center px-4">
         <LoadingSpinner label="Checking session..." />
       </div>
     );
@@ -37,7 +37,7 @@ function HomeRedirect() {
 
   if (loading) {
     return (
-      <div className="center full-height">
+      <div className="flex min-h-screen items-center justify-center px-4">
         <LoadingSpinner label="Loading account..." />
       </div>
     );
