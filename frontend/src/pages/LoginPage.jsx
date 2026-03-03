@@ -34,8 +34,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center" aria-hidden="true">
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-b from-sky-500 to-sky-600 text-2xl text-white shadow-lg shadow-sky-300/60">
-            📖
+          <div className="mx-auto mb-3 grid h-24 w-24 place-items-center rounded-2xl text-2xl text-white shadow-lg shadow-sky-300/60">
+            <img src="/image.png" alt="" className="h-20 w-20 rounded-full object-cover" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">M.S. Piparda</h1>
           <p className="mt-1 text-sm text-slate-600">School Management System</p>
