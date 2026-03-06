@@ -1,6 +1,14 @@
 import PublicLayout from '../components/PublicLayout.jsx';
+import { useSEO } from '../components/SEO.jsx';
 
 export default function PrivacyPage() {
+  useSEO({
+    title: 'Privacy Policy',
+    description: 'Read the MS Piparda School Management System privacy policy for data collection, access, and protection details.',
+    path: '/privacy-policy',
+    robots: 'index,follow'
+  });
+
   return (
     <PublicLayout
       title="Privacy Policy"

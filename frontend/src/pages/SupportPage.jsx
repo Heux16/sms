@@ -1,6 +1,14 @@
 import PublicLayout from '../components/PublicLayout.jsx';
+import { useSEO } from '../components/SEO.jsx';
 
 export default function SupportPage() {
+  useSEO({
+    title: 'Support',
+    description: 'Get support for login, grades, and technical issues in the MS Piparda School Management System.',
+    path: '/support',
+    robots: 'index,follow'
+  });
+
   return (
     <PublicLayout title="Support" subtitle="Quick help for login, grades, and technical issues.">
       <ul className="list-disc space-y-2 pl-5">

@@ -2,9 +2,17 @@ import { Fragment, useEffect, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { apiRequest } from '../api/client.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useSEO } from '../components/SEO.jsx';
 import { Menu, X } from 'lucide-react';
 
 export default function StudentPage() {
+  useSEO({
+    title: 'Student Dashboard',
+    description: 'Student dashboard for exam results, subject profiles, and account settings.',
+    path: '/student',
+    robots: 'noindex,nofollow'
+  });
+
   const [data, setData] = useState({ exams: [], scores: [], subjectProfiles: [], overall: null });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { apiRequest } from '../api/client.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useSEO } from '../components/SEO.jsx';
 import { Menu, X } from 'lucide-react';
 
 const PROFILE_SUBJECT_ORDER = [
@@ -16,6 +17,13 @@ const PROFILE_SUBJECT_ORDER = [
 ];
 
 export default function TeacherPage() {
+  useSEO({
+    title: 'Teacher Dashboard',
+    description: 'Teacher dashboard for exams, tests, student records, and marks entry.',
+    path: '/teacher',
+    robots: 'noindex,nofollow'
+  });
+
   const [exams, setExams] = useState([]);
   const [students, setStudents] = useState([]);
   const [selectedExamId, setSelectedExamId] = useState('');

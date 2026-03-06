@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout.jsx';
 import { apiRequest } from '../api/client.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useSEO } from '../components/SEO.jsx';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import {
   ArrowUpRight,
@@ -42,6 +43,13 @@ function isPublished(value) {
 }
 
 export default function AdminPage() {
+  useSEO({
+    title: 'Admin Dashboard',
+    description: 'Administrative dashboard for managing exams, users, and results.',
+    path: '/admin',
+    robots: 'noindex,nofollow'
+  });
+
   const [data, setData] = useState(null);
   const [exams, setExams] = useState([]);
   const [users, setUsers] = useState([]);
