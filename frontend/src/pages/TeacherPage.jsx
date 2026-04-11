@@ -312,6 +312,44 @@ export default function TeacherPage() {
   }
 
   const studentExamOrder = studentProfile?.exams?.map((exam) => exam.exam_name) || [];
+  const examMonthWeightageMap = useMemo(() => {
+    const map = {};
+
+    (studentProfile?.exams || []).forEach((exam) => {
+      const examName = String(exam.exam_name || '').toLowerCase();
+
+      if (examName.includes('september') || examName.includes('sep')) {
+        map[exam.exam_name] = 20;
+        return;
+      }
+
+      if (examName.includes('december') || examName.includes('dec')) {
+        map[exam.exam_name] = 20;
+        return;
+      }
+
+      if (examName.includes('march') || examName.includes('mar')) {
+        map[exam.exam_name] = 60;
+      }
+    });
+
+    return map;
+  }, [studentProfile]);
+
+  function getMonthlyPercentageValue(total, examName) {
+    const examWeightage = examMonthWeightageMap[examName];
+    if (!examWeightage && examWeightage !== 0) {
+      return '-';
+    }
+
+    const numericTotal = Number(total);
+    if (!Number.isFinite(numericTotal)) {
+      return '-';
+    }
+
+    return ((numericTotal * examWeightage) / 100).toFixed(2);
+  }
+
   const orderedStudentProfileSubjects = useMemo(() => {
     if (!studentProfile?.subjectProfiles?.length) {
       return [];
@@ -739,7 +777,11 @@ export default function TeacherPage() {
                   <tr>
                     <th rowSpan="2" className="border border-slate-200 px-3 py-2 text-left font-semibold">Subject</th>
                     {studentExamOrder.map((examName) => (
-                      <th key={examName} colSpan="4" className="border border-slate-200 px-3 py-2 text-left font-semibold">
+                      <th
+                        key={examName}
+                        colSpan={examMonthWeightageMap[examName] ? 5 : 4}
+                        className="border border-slate-200 px-3 py-2 text-left font-semibold"
+                      >
                         {examName}
                       </th>
                     ))}
@@ -753,6 +795,11 @@ export default function TeacherPage() {
                         <th className="border border-slate-200 px-3 py-2 text-left font-semibold">Practical</th>
                         <th className="border border-slate-200 px-3 py-2 text-left font-semibold">Total</th>
                         <th className="border border-slate-200 px-3 py-2 text-left font-semibold">Grade</th>
+                        {examMonthWeightageMap[examName] ? (
+                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold">
+                            {examMonthWeightageMap[examName]}%
+                          </th>
+                        ) : null}
                       </Fragment>
                     ))}
                   </tr>
@@ -767,6 +814,11 @@ export default function TeacherPage() {
                           <td className="border border-slate-200 px-3 py-2">{profile.marksByExam[examName]?.practical ?? '-'}</td>
                           <td className="border border-slate-200 px-3 py-2">{profile.marksByExam[examName]?.total ?? '-'}</td>
                           <td className="border border-slate-200 px-3 py-2">{profile.marksByExam[examName]?.grade ?? '-'}</td>
+                          {examMonthWeightageMap[examName] ? (
+                            <td className="border border-slate-200 px-3 py-2">
+                              {getMonthlyPercentageValue(profile.marksByExam[examName]?.total, examName)}
+                            </td>
+                          ) : null}
                         </Fragment>
                       ))}
                       <td className="border border-slate-200 px-3 py-2">{profile.weightedScore}</td>
